@@ -11,16 +11,19 @@ import java.util.Collection;
 /**
  * Map Visit & VisitDto using mapstruct
  */
-@Mapper(uses = PetMapper.class)
+@Mapper(uses = {PetMapper.class, VetMapper.class})
 public interface VisitMapper {
     @Mapping(source = "petId", target = "pet.id")
+    @Mapping(source = "veterinarianId", target = "veterinarian.id")
     Visit toVisit(VisitDto visitDto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pet", ignore = true)
+    @Mapping(source = "veterinarianId", target = "veterinarian.id")
     Visit toVisit(VisitFieldsDto visitFieldsDto);
 
     @Mapping(source = "pet.id", target = "petId")
+    @Mapping(source = "veterinarian.id", target = "veterinarianId")
     VisitDto toVisitDto(Visit visit);
 
     Collection<VisitDto> toVisitsDto(Collection<Visit> visits);

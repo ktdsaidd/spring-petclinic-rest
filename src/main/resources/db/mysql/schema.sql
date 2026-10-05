@@ -49,9 +49,11 @@ CREATE TABLE IF NOT EXISTS pets (
 CREATE TABLE IF NOT EXISTS visits (
   id INT(4) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   pet_id INT(4) UNSIGNED NOT NULL,
+  veterinarian_id INT(4) UNSIGNED,
   visit_date DATE,
   description VARCHAR(255),
-  FOREIGN KEY (pet_id) REFERENCES pets(id)
+  FOREIGN KEY (pet_id) REFERENCES pets(id),
+  FOREIGN KEY (veterinarian_id) REFERENCES vets(id) ON DELETE SET NULL
 ) engine=InnoDB;
 
 CREATE TABLE IF NOT EXISTS users (

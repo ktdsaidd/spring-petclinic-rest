@@ -60,11 +60,11 @@ INSERT INTO pets (name, birth_date, type_id, owner_id) VALUES
 ('Sly', '2012-06-08', 1, 10);
 
 -- Insert Visits
-INSERT INTO visits (pet_id, visit_date, description) VALUES 
-(7, '2013-01-01', 'rabies shot'),
-(8, '2013-01-02', 'rabies shot'),
-(8, '2013-01-03', 'neutered'),
-(7, '2013-01-04', 'spayed');
+INSERT INTO visits (pet_id, veterinarian_id, visit_date, description) VALUES 
+(7, NULL, '2013-01-01', 'rabies shot'),
+(8, NULL, '2013-01-02', 'rabies shot'),
+(8, NULL, '2013-01-03', 'neutered'),
+(7, NULL, '2013-01-04', 'spayed');
 
 -- Insert Admin User
 INSERT INTO users (username, password, enabled) VALUES

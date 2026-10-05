@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.samples.petclinic.mapper.VisitMapper;
 import org.springframework.samples.petclinic.model.Visit;
+import org.springframework.samples.petclinic.model.Vet;
 import org.springframework.samples.petclinic.rest.api.VisitsApi;
 import org.springframework.samples.petclinic.rest.dto.VisitDto;
 import org.springframework.samples.petclinic.rest.dto.VisitFieldsDto;
@@ -77,6 +78,13 @@ public class VisitRestControllerV1 implements VisitsApi {
     public ResponseEntity<VisitDto> addVisit(VisitDto visitDto) {
         HttpHeaders headers = new HttpHeaders();
         Visit visit = visitMapper.toVisit(visitDto);
+        if (visitDto.getVeterinarianId() != null) {
+            Vet vet = this.clinicService.findVetById(visitDto.getVeterinarianId());
+            if (vet == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            visit.setVeterinarian(vet);
+        }
         this.clinicService.saveVisit(visit);
         visitDto = visitMapper.toVisitDto(visit);
         headers.setLocation(UriComponentsBuilder.newInstance().path("/api/visits/{id}").buildAndExpand(visit.getId()).toUri());
@@ -92,6 +100,15 @@ public class VisitRestControllerV1 implements VisitsApi {
         }
         currentVisit.setDate(visitDto.getDate());
         currentVisit.setDescription(visitDto.getDescription());
+        if (visitDto.getVeterinarianId() != null) {
+            Vet vet = this.clinicService.findVetById(visitDto.getVeterinarianId());
+            if (vet == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            currentVisit.setVeterinarian(vet);
+        } else {
+            currentVisit.setVeterinarian(null);
+        }
         this.clinicService.saveVisit(currentVisit);
         return new ResponseEntity<>(visitMapper.toVisitDto(currentVisit), HttpStatus.NO_CONTENT);
     }

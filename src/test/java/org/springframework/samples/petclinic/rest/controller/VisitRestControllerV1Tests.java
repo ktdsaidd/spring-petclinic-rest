@@ -27,8 +27,10 @@ import org.springframework.samples.petclinic.mapper.VisitMapper;
 import org.springframework.samples.petclinic.model.Owner;
 import org.springframework.samples.petclinic.model.Pet;
 import org.springframework.samples.petclinic.model.PetType;
+import org.springframework.samples.petclinic.model.Vet;
 import org.springframework.samples.petclinic.model.Visit;
 import org.springframework.samples.petclinic.rest.advice.ExceptionControllerAdvice;
+import org.springframework.samples.petclinic.rest.dto.VisitFieldsDto;
 import org.springframework.samples.petclinic.service.ClinicService;
 import org.springframework.samples.petclinic.service.clinicService.ApplicationTestConfig;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -72,8 +74,8 @@ class VisitRestControllerV1Tests {
     @BeforeEach
     void initVisits(){
         this.mockMvc = MockMvcBuilders.standaloneSetup(visitRestControllerV1)
-    			.setControllerAdvice(new ExceptionControllerAdvice())
-    			.build();
+        			.setControllerAdvice(new ExceptionControllerAdvice())
+        			.build();
 
         visits = new ArrayList<>();
 
@@ -96,12 +98,17 @@ class VisitRestControllerV1Tests {
     	pet.setOwner(owner);
     	pet.setType(petType);
 
+        Vet vet = new Vet();
+        vet.setId(1);
+        vet.setFirstName("James");
+        vet.setLastName("Carter");
 
     	Visit visit = new Visit();
     	visit.setId(2);
     	visit.setPet(pet);
         visit.setDate(LocalDate.now());
     	visit.setDescription("rabies shot");
+        visit.setVeterinarian(vet);
     	visits.add(visit);
 
     	visit = new Visit();
@@ -109,6 +116,7 @@ class VisitRestControllerV1Tests {
     	visit.setPet(pet);
         visit.setDate(LocalDate.now());
     	visit.setDescription("neutered");
+        visit.setVeterinarian(null);
     	visits.add(visit);
 
 
@@ -164,12 +172,18 @@ class VisitRestControllerV1Tests {
     void testCreateVisitSuccess() throws Exception {
     	Visit newVisit = visits.get(0);
     	newVisit.setId(999);
+    	Vet vet = new Vet();
+    	vet.setId(1);
+    	vet.setFirstName("James");
+    	vet.setLastName("Carter");
+    	newVisit.setVeterinarian(vet);
+    	given(this.clinicService.findVetById(1)).willReturn(vet);
+    	org.mockito.Mockito.doAnswer(invocation -> null).when(this.clinicService).saveVisit(org.mockito.ArgumentMatchers.any());
     	ObjectMapper mapper = new ObjectMapper();
         String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
-    	System.out.println("newVisitAsJSON " + newVisitAsJSON);
-    	this.mockMvc.perform(post("/api/visits")
-    		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-    		.andExpect(status().isCreated());
+     	this.mockMvc.perform(post("/api/visits")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+     		.andExpect(status().isCreated());
     }
 
     @Test
@@ -189,33 +203,37 @@ class VisitRestControllerV1Tests {
     @WithMockUser(roles="OWNER_ADMIN")
     void testUpdateVisitSuccess() throws Exception {
     	given(this.clinicService.findVisitById(2)).willReturn(visits.get(0));
-    	Visit newVisit = visits.get(0);
-    	newVisit.setDescription("rabies shot test");
+    	VisitFieldsDto visitFieldsDto = new VisitFieldsDto();
+    	visitFieldsDto.setDate(LocalDate.now());
+    	visitFieldsDto.setDescription("rabies shot test");
+    	visitFieldsDto.setVeterinarianId(1);
+    	given(this.clinicService.findVetById(1)).willReturn(new Vet());
     	ObjectMapper mapper = new ObjectMapper();
-        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
-    	this.mockMvc.perform(put("/api/visits/2")
-    		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        	.andExpect(content().contentType("application/json"))
-        	.andExpect(status().isNoContent());
+        String newVisitAsJSON = mapper.writeValueAsString(visitFieldsDto);
+     	this.mockMvc.perform(put("/api/visits/2")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+         	.andExpect(status().isNoContent());
 
-    	this.mockMvc.perform(get("/api/visits/2")
-           	.accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType("application/json"))
-            .andExpect(jsonPath("$.id").value(2))
-            .andExpect(jsonPath("$.description").value("rabies shot test"));
+     	this.mockMvc.perform(get("/api/visits/2")
+            	.accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON_VALUE))
+             .andExpect(status().isOk())
+             .andExpect(content().contentType("application/json"))
+             .andExpect(jsonPath("$.id").value(2))
+             .andExpect(jsonPath("$.description").value("rabies shot test"));
     }
 
     @Test
     @WithMockUser(roles="OWNER_ADMIN")
     void testUpdateVisitError() throws Exception {
-    	Visit newVisit = visits.get(0);
-        newVisit.setDescription(null);
+    	VisitFieldsDto visitFieldsDto = new VisitFieldsDto();
+    	visitFieldsDto.setDate(LocalDate.now());
+    	visitFieldsDto.setDescription(null);
+    	visitFieldsDto.setVeterinarianId(1);
     	ObjectMapper mapper = new ObjectMapper();
-        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
-    	this.mockMvc.perform(put("/api/visits/2")
-    		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        	.andExpect(status().isBadRequest());
+        String newVisitAsJSON = mapper.writeValueAsString(visitFieldsDto);
+     	this.mockMvc.perform(put("/api/visits/2")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+         	.andExpect(status().isBadRequest());
      }
 
     @Test
@@ -240,6 +258,84 @@ class VisitRestControllerV1Tests {
         this.mockMvc.perform(delete("/api/visits/999")
     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
         	.andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles="OWNER_ADMIN")
+    void testCreateVisitSuccessWithVeterinarian() throws Exception {
+    	Visit newVisit = new Visit();
+    	newVisit.setId(null);
+    	newVisit.setPet(visits.get(0).getPet());
+    	newVisit.setDate(LocalDate.now());
+    	newVisit.setDescription("checkup");
+    	Vet vet = new Vet();
+    	vet.setId(1);
+    	vet.setFirstName("James");
+    	vet.setLastName("Carter");
+    	newVisit.setVeterinarian(vet);
+    	given(this.clinicService.findVetById(1)).willReturn(vet);
+    	org.mockito.Mockito.doAnswer(invocation -> null).when(this.clinicService).saveVisit(org.mockito.ArgumentMatchers.any());
+    	ObjectMapper mapper = new ObjectMapper();
+        String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
+     	this.mockMvc.perform(post("/api/visits")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+     		.andExpect(status().isCreated())
+            .andExpect(jsonPath("$.veterinarianId").value(1));
+    }
+
+    @Test
+    @WithMockUser(roles="OWNER_ADMIN")
+    void testCreateVisitWithInvalidVeterinarian() throws Exception {
+    	Visit newVisit = new Visit();
+    	newVisit.setId(null);
+    	newVisit.setPet(visits.get(0).getPet());
+    	newVisit.setDate(LocalDate.now());
+    	newVisit.setDescription("checkup");
+    	Vet vet = new Vet();
+    	vet.setId(999);
+    	vet.setFirstName("Unknown");
+    	vet.setLastName("Vet");
+    	newVisit.setVeterinarian(vet);
+    	given(this.clinicService.findVetById(999)).willReturn(null);
+    	org.mockito.Mockito.doAnswer(invocation -> null).when(this.clinicService).saveVisit(org.mockito.ArgumentMatchers.any());
+    	ObjectMapper mapper = new ObjectMapper();
+         String newVisitAsJSON = mapper.writeValueAsString(visitMapper.toVisitDto(newVisit));
+     	this.mockMvc.perform(post("/api/visits")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+     		.andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles="OWNER_ADMIN")
+    void testUpdateVisitSetVeterinarianToNull() throws Exception {
+    	given(this.clinicService.findVisitById(2)).willReturn(visits.get(0));
+    	// Create VisitFieldsDto with veterinarianId = null (clear veterinarian)
+    	VisitFieldsDto visitFieldsDto = new VisitFieldsDto();
+    	visitFieldsDto.setDate(LocalDate.now());
+    	visitFieldsDto.setDescription("updated description");
+    	visitFieldsDto.setVeterinarianId(null);
+    	ObjectMapper mapper = new ObjectMapper();
+        String newVisitAsJSON = mapper.writeValueAsString(visitFieldsDto);
+     	this.mockMvc.perform(put("/api/visits/2")
+     		.content(newVisitAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
+         	.andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(roles="OWNER_ADMIN")
+    void testListVisitsIncludesVeterinarian() throws Exception {
+    	Vet vet = new Vet();
+    	vet.setId(1);
+    	vet.setFirstName("James");
+    	vet.setLastName("Carter");
+    	visits.get(0).setVeterinarian(vet);
+    	given(this.clinicService.findAllVisits()).willReturn(visits);
+        this.mockMvc.perform(get("/api/visits")
+        	.accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.[0].veterinarian.id").value(1))
+            .andExpect(jsonPath("$.[0].veterinarian.firstName").value("James"))
+            .andExpect(jsonPath("$.[1].veterinarian").doesNotExist());
     }
 
 }
