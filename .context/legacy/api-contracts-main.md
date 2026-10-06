@@ -40,7 +40,7 @@
 | GET | `/api/owners/{ownerId}/pets/{petId}` | 소유자의 반려동물 조회 |
 | PUT | `/api/owners/{ownerId}/pets/{petId}` | 소유자의 반려동물 수정 |
 | POST | `/api/owners/{ownerId}/pets` | 소유자에게 반려동물 등록 |
-| POST | `/api/owners/{ownerId}/pets/{petId}/visits` | 반려동물 방문 기록 등록 |
+| POST | `/api/owners/{ownerId}/pets/{petId}/visits` | 반려동물 방문 기록 등록 (veterinarianId 필수 — 누락 400, 미존재 수의사 404) — DR-2026-00001 |
 
 ### Pets (`/api/pets`)
 
@@ -85,10 +85,10 @@
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/visits` | 전체 방문 기록 조회 |
-| GET | `/api/visits/{visitId}` | ID로 방문 기록 조회 |
-| POST | `/api/visits` | 방문 기록 등록 |
-| PUT | `/api/visits/{visitId}` | 방문 기록 수정 |
+| GET | `/api/visits` | 전체 방문 기록 조회 (응답 VisitDto에 veterinarian 중첩 객체 포함, 기존 방문은 null) — DR-2026-00001 |
+| GET | `/api/visits/{visitId}` | ID로 방문 기록 조회 (응답 VisitDto에 veterinarian 중첩 객체 포함, 기존 방문은 null) — DR-2026-00001 |
+| POST | `/api/visits` | 방문 기록 등록 (veterinarianId 필수 — 누락 400, 미존재 수의사 404) — DR-2026-00001 |
+| PUT | `/api/visits/{visitId}` | 방문 기록 수정 (veterinarianId NULL 허용 — 미지정 변경 가능) — DR-2026-00001 |
 | DELETE | `/api/visits/{visitId}` | 방문 기록 삭제 |
 
 ### Users (`/api/users`)
@@ -123,3 +123,9 @@
 
 - 정확한 요청/응답 스키마는 `src/main/resources/openapi.yml` 원본 참조 (Quick 스캔에서는 본문 미파싱).
 - V2 컨트롤러(`OwnerRestControllerV2`, `PetRestControllerV2`)의 상세 스펙은 openapi.yml 및 소스 확인 필요.
+
+## 변경 이력
+
+| 일자 | SR | 변경내용 | 섹션 |
+|---|---|---|---|
+| 2026-10-05 | spec-dr-2026-00001 | 방문 등록/수정/조회 5개 엔드포인트에 veterinarianId 요청 필드(등록 필수·수정 NULL 허용)·veterinarian 응답 중첩 객체·400/404 검증 동작 반영 | ## 엔드포인트 카탈로그 |

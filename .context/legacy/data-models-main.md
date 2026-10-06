@@ -69,6 +69,7 @@
 | pet_id | INTEGER | FK→pets.id (CASCADE) |
 | visit_date | DATE | NOT NULL |
 | description | VARCHAR(255) | NOT NULL |
+| veterinarian_id | INTEGER | FK→vets.id (ON DELETE SET NULL), NULL 허용 — DR-2026-00001 방문 담당 수의사 지정, 4개 DB 프로필 스키마 동시 적용 |
 
 ### users — 사용자
 
@@ -100,7 +101,7 @@ users 1──* roles
 - JPA 모델 클래스 기준 (`model/` 패키지):
   - `Person`(추상) → `Owner`, `Vet` 상속
   - `BaseEntity` → `NamedEntity` → `Specialty`, `PetType`
-  - `Owner` 1:* `Pet`, `Pet` 1:* `Visit`, `Vet` *:* `Specialty`
+  - `Owner` 1:* `Pet`, `Pet` 1:* `Visit`, `Visit` *─1 `Vet` (veterinarian_id FK, NULL 허용), `Vet` *:* `Specialty` — Visit-Vet 관계는 DR-2026-00001에서 추가됨
   - `User` 1:* `Role`
 
 ## JPA 엔티티 ↔ 테이블 매핑
@@ -112,7 +113,7 @@ users 1──* roles
 | Pet | pets |
 | PetType | types |
 | Specialty | specialties |
-| Visit | visits |
+| Visit | visits (veterinarian → vets, N:1 NULL 허용) — @ManyToOne veterinarian: Vet 관계와 visits.veterinarian_id FK 매핑은 DR-2026-00001에서 추가됨 |
 | User | users |
 | Role | roles |
 
@@ -121,3 +122,10 @@ users 1──* roles
 - JDBC 프로필 전용 보조 클래스: `repository/jdbc/JdbcPet.java`(조인 결과용), `JdbcPetRowMapper`, `JdbcVisitRowMapper`, `JdbcPetVisitExtractor`
 - 시드 데이터: `db/<platform>/data.sql` (샘플 owners/pets/vets/visits/users)
 - 정확한 컬럼 상세는 플랫폼별 schema.sql 원본 참조 (mysql/postgres/hsqldb 변형 존재)
+- Visit DTO/매핑 (DR-2026-00001): `VisitFieldsDto.veterinarianId`(입력, 등록 필수·수정 NULL 허용) ↔ `Visit.veterinarian.id` 매핑은 MapStruct `VisitMapper`가 담당. `VisitDto.veterinarian`은 Vet 중첩 객체(Pet→PetType 패턴, 미지정 시 null). DTO는 openapi.yml 기반 빌드 타임 생성 — `target/generated-sources` 직접 수정 금지.
+
+## 변경 이력
+
+| 일자 | SR | 변경내용 | 섹션 |
+|---|---|---|---|
+| 2026-10-05 | spec-dr-2026-00001 | visits 테이블 veterinarian_id 컬럼 추가, Visit-Vet N:1 관계·JPA 매핑 반영, VisitMapper veterinarianId 매핑 규칙 bullet 추가 | ## 테이블 카탈로그 (H2 스키마 기준, 9개 테이블), ## 관계 다이어그램 (ER 요약), ## JPA 엔티티 ↔ 테이블 매핑, ## 참고 |
